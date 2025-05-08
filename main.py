@@ -119,7 +119,7 @@ class DiscordWebhookApp:
         # Footer
         ttk.Label(settings_frame, text="Footer Text:").pack(anchor=tk.W, pady=(0, 5))
         self.footer_entry = ttk.Entry(settings_frame, width=50)
-        self.footer_entry.insert(0, "Equipe de administração VeexMC")
+        self.footer_entry.insert(0, "Equipe de administração ReisPixelmon")
         self.footer_entry.pack(fill=tk.X, pady=(0, 10), ipady=3)
         
         # Send button

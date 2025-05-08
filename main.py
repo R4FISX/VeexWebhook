@@ -11,7 +11,7 @@ import urllib.request
 class DiscordWebhookApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Discord Webhook Sender - VeexMC")
+        self.root.title("Discord Webhook Sender - ReisPixelmon")
         self.root.geometry("700x650")
         self.root.resizable(True, True)
         self.root.configure(bg="#2C2F33")  # Discord-like dark background
@@ -123,12 +123,12 @@ class DiscordWebhookApp:
         self.footer_entry.pack(fill=tk.X, pady=(0, 10), ipady=3)
         
         # Send button
-        send_button = ttk.Button(main_frame, text="Send Webhook", command=self.enviar_webhook, style="Send.TButton")
+        send_button = ttk.Button(main_frame, text="Enviar Webhook", command=self.enviar_webhook, style="Send.TButton")
         send_button.pack(pady=15, ipadx=10, ipady=5)
         
         # Status bar
         self.status_var = tk.StringVar()
-        self.status_var.set("Ready to send")
+        self.status_var.set("Pronto para enviar")
         status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
         status_bar.pack(fill=tk.X, side=tk.BOTTOM, pady=(5, 0))
         
@@ -158,11 +158,11 @@ class DiscordWebhookApp:
         
         # Basic URL validation
         if not webhook_url:
-            messagebox.showerror("Error", "Please enter a webhook URL!")
+            messagebox.showerror("Erro", "Por favor, insira uma URL de webhook!")
             return
             
         if not webhook_url.startswith("https://discord.com/api/webhooks/"):
-            messagebox.showerror("Error", "Invalid Discord webhook URL format!")
+            messagebox.showerror("Erro", "Formato de URL de webhook do Discord inválido!")
             return
         
         data = {}
@@ -171,7 +171,7 @@ class DiscordWebhookApp:
         if current_tab == 0:  # Simple message
             mensagem_simples = self.simple_message.get("1.0", tk.END).strip()
             if not mensagem_simples:
-                messagebox.showerror("Error", "Please enter a message to send!")
+                messagebox.showerror("Erro", "Por favor, insira uma mensagem para enviar!")
                 return
             data = {"content": mensagem_simples}
         else:  # Embed message
@@ -182,7 +182,7 @@ class DiscordWebhookApp:
             footer = self.footer_entry.get()
             
             if not titulo and not descricao:
-                messagebox.showerror("Error", "Title or description is required for embeds!")
+                messagebox.showerror("Erro", "Título ou descrição são necessários para embeds!")
                 return
                 
             # Build embed
@@ -201,21 +201,21 @@ class DiscordWebhookApp:
             data = {"embeds": [embed]}
             
         # Update status
-        self.status_var.set("Sending webhook...")
+        self.status_var.set("Enviando webhook...")
         self.root.update_idletasks()
         
         # Send the webhook
         try:
             response = requests.post(webhook_url, json=data)
             if response.status_code == 204:
-                self.status_var.set("Webhook sent successfully!")
-                messagebox.showinfo("Success", "Message sent successfully!")
+                self.status_var.set("Webhook enviado com sucesso!")
+                messagebox.showinfo("Sucesso", "Mensagem enviada com sucesso!")
             else:
-                self.status_var.set(f"Error: Status code {response.status_code}")
-                messagebox.showerror("Error", f"Failed to send message. Status code: {response.status_code}")
+                self.status_var.set(f"Erro: Código de status {response.status_code}")
+                messagebox.showerror("Erro", f"Falha ao enviar mensagem. Código de status: {response.status_code}")
         except Exception as e:
-            self.status_var.set(f"Error: {str(e)}")
-            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+            self.status_var.set(f"Erro: {str(e)}")
+            messagebox.showerror("Erro", f"Ocorreu um erro: {str(e)}")
 
 if __name__ == "__main__":
     root = tk.Tk()

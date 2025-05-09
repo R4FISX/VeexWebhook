@@ -1,12 +1,53 @@
 import requests
 import tkinter as tk
-from tkinter import messagebox, ttk
-from tkinter import colorchooser
+from tkinter import messagebox, ttk, colorchooser
 import re
 import webbrowser
 from PIL import Image, ImageTk
 import io
 import urllib.request
+
+class PlaceholderEntry(ttk.Entry):
+    def __init__(self, master, placeholder, color='grey', **kw):
+        super().__init__(master, **kw)
+        self.placeholder = placeholder
+        self.placeholder_color = color
+        self.default_fg = self['foreground']
+        self.bind('<FocusIn>', self._clear)
+        self.bind('<FocusOut>', self._add)
+        self._add()
+
+    def _clear(self, _):
+        if self.get() == self.placeholder:
+            self.delete(0, tk.END)
+            self['foreground'] = self.default_fg
+
+    def _add(self, _=None):
+        if not self.get():
+            self.insert(0, self.placeholder)
+            self['foreground'] = self.placeholder_color
+
+class ToolTip:
+    def __init__(self, widget, text):
+        self.widget, self.text = widget, text
+        self.tip = None
+        widget.bind("<Enter>", self.show)
+        widget.bind("<Leave>", self.hide)
+
+    def show(self, _):
+        if self.tip or not self.text: return
+        x, y, _, _ = self.widget.bbox("insert")
+        x += self.widget.winfo_rootx()+25
+        y += self.widget.winfo_rooty()+20
+        self.tip = tk.Toplevel(self.widget)
+        self.tip.overrideredirect(True)
+        self.tip.geometry(f"+{x}+{y}")
+        tk.Label(self.tip, text=self.text, bg="#ffffe0", relief='solid', bd=1).pack()
+
+    def hide(self, _):
+        if self.tip:
+            self.tip.destroy()
+            self.tip = None
 
 class DiscordWebhookApp:
     def __init__(self, root):
@@ -59,18 +100,23 @@ class DiscordWebhookApp:
         url_input_frame = ttk.Frame(url_frame)
         url_input_frame.pack(fill=tk.X)
         
-        self.url_entry = ttk.Entry(url_input_frame, width=80)
+        self.url_entry = PlaceholderEntry(
+            url_input_frame,
+            "https://discord.com/api/webhooks/ID/TOKEN",
+            width=80
+        )
         self.url_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=3)
-        
+        ToolTip(self.url_entry, "Cole aqui sua URL de webhook do Discord")
+
         # Create notebook (tabs)
         self.notebook = ttk.Notebook(main_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True, pady=10)
         
         # Simple message tab
         self.simple_frame = ttk.Frame(self.notebook, padding=10)
-        self.notebook.add(self.simple_frame, text="Simple Message")
+        self.notebook.add(self.simple_frame, text="Mensagem Simples")
         
-        ttk.Label(self.simple_frame, text="Message Content:").pack(anchor=tk.W, pady=(0, 5))
+        ttk.Label(self.simple_frame, text="Conteúdo da Mensagem:").pack(anchor=tk.W, pady=(0, 5))
         
         self.simple_message = tk.Text(self.simple_frame, height=10, width=70, 
                                       font=("Segoe UI", 10), bg="#40444B", fg="white")
@@ -78,19 +124,19 @@ class DiscordWebhookApp:
         
         # Embed tab
         self.embed_frame = ttk.Frame(self.notebook, padding=10)
-        self.notebook.add(self.embed_frame, text="Embed Message")
+        self.notebook.add(self.embed_frame, text="Mensagem Embed")
         
         # Left side - embed settings
         settings_frame = ttk.Frame(self.embed_frame)
         settings_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
         
         # Title
-        ttk.Label(settings_frame, text="Title:").pack(anchor=tk.W, pady=(0, 5))
+        ttk.Label(settings_frame, text="Título:").pack(anchor=tk.W, pady=(0, 5))
         self.titulo_entry = ttk.Entry(settings_frame, width=50)
         self.titulo_entry.pack(fill=tk.X, pady=(0, 10), ipady=3)
         
         # Description
-        ttk.Label(settings_frame, text="Description:").pack(anchor=tk.W, pady=(0, 5))
+        ttk.Label(settings_frame, text="Descrição:").pack(anchor=tk.W, pady=(0, 5))
         self.descricao_text = tk.Text(settings_frame, height=6, width=50, 
                                       font=("Segoe UI", 10), bg="#40444B", fg="white")
         self.descricao_text.pack(fill=tk.X, pady=(0, 10))
@@ -99,7 +145,7 @@ class DiscordWebhookApp:
         color_frame = ttk.Frame(settings_frame)
         color_frame.pack(fill=tk.X, pady=(0, 10))
         
-        ttk.Label(color_frame, text="Color:").pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Label(color_frame, text="Cor:").pack(side=tk.LEFT, padx=(0, 5))
         self.color_preview = tk.Canvas(color_frame, width=20, height=20, bg="#FF0000", highlightthickness=1)
         self.color_preview.pack(side=tk.LEFT, padx=(0, 5))
         
@@ -108,7 +154,7 @@ class DiscordWebhookApp:
         self.cor_entry.pack(side=tk.LEFT, padx=(0, 5))
         self.cor_entry.bind("<KeyRelease>", self.update_color_preview)
         
-        color_btn = ttk.Button(color_frame, text="Choose Color", command=self.choose_color)
+        color_btn = ttk.Button(color_frame, text="Escolher Cor", command=self.choose_color)
         color_btn.pack(side=tk.LEFT, padx=5)
         
         # Image URL
@@ -123,9 +169,20 @@ class DiscordWebhookApp:
         self.footer_entry.pack(fill=tk.X, pady=(0, 10), ipady=3)
         
         # Send button
-        send_button = ttk.Button(main_frame, text="Enviar Webhook", command=self.enviar_webhook, style="Send.TButton")
+        send_button = ttk.Button(
+            main_frame,
+            text="Enviar Webhook",
+            command=self.enviar_webhook,
+            style="Send.TButton"
+        )
         send_button.pack(pady=15, ipadx=10, ipady=5)
-        
+        ToolTip(send_button, "Clique para enviar sua mensagem")
+
+        # +++ Nova barra de progresso +++
+        self.progress = ttk.Progressbar(main_frame, mode='indeterminate')
+        self.progress.pack(fill=tk.X, pady=(5,0))
+        self.progress.pack_forget()
+
         # Status bar
         self.status_var = tk.StringVar()
         self.status_var.set("Pronto para enviar")
@@ -200,11 +257,13 @@ class DiscordWebhookApp:
                 
             data = {"embeds": [embed]}
             
-        # Update status
+        # Inicia animação
+        self.progress.pack(fill=tk.X, pady=(5,0))
+        self.progress.start(20)
         self.status_var.set("Enviando webhook...")
         self.root.update_idletasks()
-        
-        # Send the webhook
+
+        # Update status
         try:
             response = requests.post(webhook_url, json=data)
             if response.status_code == 204:
@@ -216,6 +275,10 @@ class DiscordWebhookApp:
         except Exception as e:
             self.status_var.set(f"Erro: {str(e)}")
             messagebox.showerror("Erro", f"Ocorreu um erro: {str(e)}")
+        finally:
+            # Para animação
+            self.progress.stop()
+            self.progress.pack_forget()
 
 if __name__ == "__main__":
     root = tk.Tk()

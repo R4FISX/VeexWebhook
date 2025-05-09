@@ -108,6 +108,16 @@ class DiscordWebhookApp:
         self.url_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=3)
         ToolTip(self.url_entry, "Cole aqui sua URL de webhook do Discord")
 
+        # Após a seção URL e antes do notebook
+        mention_frame = ttk.Frame(main_frame)
+        mention_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        ttk.Label(mention_frame, text="Mencionar Cargos (IDs separados por vírgula):").pack(anchor=tk.W, pady=(0, 5))
+        
+        self.mention_entry = ttk.Entry(mention_frame, width=50)
+        self.mention_entry.pack(fill=tk.X, ipady=3)
+        ToolTip(self.mention_entry, "Insira IDs de cargos para mencioná-los (ex: 123456789,987654321)")
+    
         # Create notebook (tabs)
         self.notebook = ttk.Notebook(main_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True, pady=10)
@@ -224,13 +234,25 @@ class DiscordWebhookApp:
         
         data = {}
         
+        # Processa as menções de cargos
+        role_mentions = ""
+        roles_ids = self.mention_entry.get().strip()
+        if roles_ids:
+            role_ids_list = [role.strip() for role in roles_ids.split(",")]
+            for role_id in role_ids_list:
+                if role_id.isdigit():  # Verifica se é um número
+                    role_mentions += f"<@&{role_id}> "
+    
         # Process based on selected tab
         if current_tab == 0:  # Simple message
             mensagem_simples = self.simple_message.get("1.0", tk.END).strip()
             if not mensagem_simples:
                 messagebox.showerror("Erro", "Por favor, insira uma mensagem para enviar!")
                 return
-            data = {"content": mensagem_simples}
+            
+            # Adiciona menções ao início da mensagem simples
+            content = role_mentions + mensagem_simples if role_mentions else mensagem_simples
+            data = {"content": content}
         else:  # Embed message
             titulo = self.titulo_entry.get()
             descricao = self.descricao_text.get("1.0", tk.END).strip()
@@ -255,8 +277,12 @@ class DiscordWebhookApp:
             if footer:
                 embed["footer"] = {"text": footer}
                 
-            data = {"embeds": [embed]}
-            
+            # Adiciona as menções no campo content, separado do embed
+            data = {
+                "content": role_mentions if role_mentions else "",
+                "embeds": [embed]
+            }
+    
         # Inicia animação
         self.progress.pack(fill=tk.X, pady=(5,0))
         self.progress.start(20)

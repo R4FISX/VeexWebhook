@@ -91,8 +91,13 @@ class DiscordWebhookApp:
         self.style.configure('TEntry', font=('Segoe UI', 10))
         
         # Special button styles
-        self.style.configure('Send.TButton', background='#43B581', font=('Segoe UI', 10, 'bold'))
-        self.style.map('Send.TButton', background=[('active', '#3CA374')])
+        self.style.configure('Send.TButton', 
+                             background='#43B581', 
+                             foreground='white',
+                             font=('Segoe UI', 11, 'bold'))
+        self.style.map('Send.TButton', 
+                       background=[('active', '#3CA374'), ('pressed', '#2D7A59')],
+                       relief=[('pressed', 'sunken')])
         
         self.style.configure('ColorPicker.TButton', background='#FF0000')
         
@@ -217,15 +222,27 @@ class DiscordWebhookApp:
         self.imagem_entry.bind("<KeyRelease>", self.update_preview)
         self.footer_entry.bind("<KeyRelease>", self.update_preview)
         
-        # Send button
+        # Send button com ícone e efeito de clique
+        send_button_frame = ttk.Frame(main_frame)
+        send_button_frame.pack(pady=15)
+
         send_button = ttk.Button(
-            main_frame,
+            send_button_frame,
             text="Enviar Webhook",
             command=self.enviar_webhook,
-            style="Send.TButton"
+            style="Send.TButton",
+            width=20
         )
-        send_button.pack(pady=15, ipadx=10, ipady=5)
-        ToolTip(send_button, "Clique para enviar sua mensagem")
+        send_button.pack(ipadx=10, ipady=8)
+        ToolTip(send_button, "Clique para enviar sua mensagem (Ctrl+Enter)")
+
+        # Adicione um efeito visual quando o botão for clicado
+        def button_click_effect(event):
+            send_button.state(['pressed'])
+            self.root.after(100, lambda: send_button.state(['!pressed']))
+            self.enviar_webhook()
+
+        send_button.bind('<Button-1>', button_click_effect)
 
         # +++ Nova barra de progresso +++
         self.progress = ttk.Progressbar(main_frame, mode='indeterminate')

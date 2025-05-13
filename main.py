@@ -6,6 +6,8 @@ import webbrowser
 from PIL import Image, ImageTk
 import io
 import urllib.request
+import json
+import os
 
 class PlaceholderEntry(ttk.Entry):
     def __init__(self, master, placeholder, color='grey', **kw):
@@ -60,6 +62,14 @@ class DiscordWebhookApp:
         self.setup_styles()
         self.create_ui()
         
+        # Armazenar webhooks recentes
+        self.recent_webhooks = []
+        self.load_saved_webhooks()
+
+        # Bind keyboard shortcuts
+        self.root.bind('<Control-Return>', lambda e: self.enviar_webhook())
+        self.root.bind('<Control-s>', lambda e: self.save_current_webhook())
+
     def setup_styles(self):
         # Configure ttk styles for a more modern look
         self.style = ttk.Style()
@@ -132,7 +142,7 @@ class DiscordWebhookApp:
                                       font=("Segoe UI", 10), bg="#40444B", fg="white")
         self.simple_message.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
-        # Embed tab
+        # Embed tab - divida em duas partes
         self.embed_frame = ttk.Frame(self.notebook, padding=10)
         self.notebook.add(self.embed_frame, text="Mensagem Embed")
         
@@ -178,6 +188,35 @@ class DiscordWebhookApp:
         self.footer_entry.insert(0, "Equipe de administração ReisPixelmon")
         self.footer_entry.pack(fill=tk.X, pady=(0, 10), ipady=3)
         
+        # Right side - embed preview
+        preview_frame = ttk.Frame(self.embed_frame)
+        preview_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        
+        ttk.Label(preview_frame, text="Preview do Embed:").pack(anchor=tk.W, pady=(0, 5))
+        
+        self.preview_frame = ttk.Frame(preview_frame, padding=10, relief="solid", borderwidth=1)
+        self.preview_frame.pack(fill=tk.BOTH, expand=True)
+        self.preview_frame.configure(style="Preview.TFrame")
+        
+        self.preview_title = ttk.Label(self.preview_frame, text="", font=("Segoe UI", 12, "bold"))
+        self.preview_title.pack(anchor=tk.W, pady=(0, 5))
+        
+        self.preview_desc = ttk.Label(self.preview_frame, text="", wraplength=250)
+        self.preview_desc.pack(anchor=tk.W, fill=tk.X)
+        
+        self.preview_img = ttk.Label(self.preview_frame)
+        self.preview_img.pack(anchor=tk.W, pady=(5, 0))
+        
+        self.preview_footer = ttk.Label(self.preview_frame, text="", font=("Segoe UI", 8))
+        self.preview_footer.pack(anchor=tk.W, side=tk.BOTTOM)
+        
+        # Vincular eventos para atualização em tempo real
+        self.titulo_entry.bind("<KeyRelease>", self.update_preview)
+        self.descricao_text.bind("<KeyRelease>", self.update_preview)
+        self.cor_entry.bind("<KeyRelease>", self.update_preview)
+        self.imagem_entry.bind("<KeyRelease>", self.update_preview)
+        self.footer_entry.bind("<KeyRelease>", self.update_preview)
+        
         # Send button
         send_button = ttk.Button(
             main_frame,
@@ -218,6 +257,25 @@ class DiscordWebhookApp:
         # Basic Discord webhook URL validation
         pattern = r'^https://discord\.com/api/webhooks/\d+/[\w-]+$'
         return re.match(pattern, url) is not None
+    
+    def validate_image_url(self):
+        """Tenta validar e carregar uma imagem da URL especificada"""
+        img_url = self.imagem_entry.get().strip()
+        if not img_url:
+            return False
+            
+        if not img_url.startswith(("http://", "https://")):
+            messagebox.showwarning("URL de Imagem", "URLs de imagem devem começar com http:// ou https://")
+            return False
+            
+        try:
+            with urllib.request.urlopen(img_url) as u:
+                raw_data = u.read()
+            img = Image.open(io.BytesIO(raw_data))
+            return True
+        except Exception as e:
+            messagebox.showerror("Erro de Imagem", f"Não foi possível carregar a imagem: {str(e)}")
+            return False
     
     def enviar_webhook(self):
         webhook_url = self.url_entry.get().strip()
@@ -306,7 +364,151 @@ class DiscordWebhookApp:
             self.progress.stop()
             self.progress.pack_forget()
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    app = DiscordWebhookApp(root)
-    root.mainloop()
+    def update_preview(self, event=None):
+        """Atualiza o preview do embed em tempo real"""
+        # Estilo baseado na cor selecionada
+        cor = self.cor_entry.get()
+        try:
+            color_hex = f"#{cor}"
+            self.style.configure("Preview.TFrame", background="#36393F", bordercolor=color_hex)
+            self.preview_frame.configure(style="Preview.TFrame")
+            
+            # Atualizar borda colorida
+            self.preview_frame.configure(borderwidth=3)
+            
+            # Atualizar título
+            titulo = self.titulo_entry.get()
+            self.preview_title.configure(text=titulo, foreground=color_hex if titulo else "white")
+            
+            # Atualizar descrição
+            desc = self.descricao_text.get("1.0", tk.END).strip()
+            self.preview_desc.configure(text=desc)
+            
+            # Atualizar imagem
+            img_url = self.imagem_entry.get().strip()
+            if img_url and img_url.startswith(("http://", "https://")):
+                try:
+                    with urllib.request.urlopen(img_url) as u:
+                        raw_data = u.read()
+                    img = Image.open(io.BytesIO(raw_data))
+                    img = img.resize((200, int(200 * img.height / img.width)), Image.LANCZOS)
+                    img_tk = ImageTk.PhotoImage(img)
+                    self.preview_img.configure(image=img_tk)
+                    self.preview_img.image = img_tk  # Manter referência
+                except Exception:
+                    self.preview_img.configure(image="")
+            else:
+                self.preview_img.configure(image="")
+                
+            # Atualizar footer
+            footer = self.footer_entry.get()
+            self.preview_footer.configure(text=footer)
+            
+        except Exception as e:
+            print(f"Erro ao atualizar preview: {e}")
+
+    def save_current_webhook(self):
+        """Salva o webhook atual na lista de recentes"""
+        current_url = self.url_entry.get().strip()
+        if not current_url or current_url == self.url_entry.placeholder:
+            messagebox.showwarning("Salvar Webhook", "Digite uma URL válida primeiro")
+            return
+            
+        # Perguntar por um nome amigável
+        name = tk.simpledialog.askstring("Salvar Webhook", "Nome para este webhook:")
+        if not name:
+            return
+            
+        # Verificar se já existe
+        for i, (saved_name, saved_url) in enumerate(self.recent_webhooks):
+            if saved_url == current_url:
+                self.recent_webhooks[i] = (name, current_url)
+                self.save_webhooks_to_file()
+                messagebox.showinfo("Webhook Salvo", "Webhook atualizado com sucesso")
+                return
+        
+        # Adicionar novo
+        self.recent_webhooks.append((name, current_url))
+        self.save_webhooks_to_file()
+        messagebox.showinfo("Webhook Salvo", "Webhook salvo com sucesso")
+        
+    def save_webhooks_to_file(self):
+        """Salva webhooks em um arquivo de configuração"""
+        config_dir = os.path.join(os.path.expanduser("~"), ".veexwebhook")
+        os.makedirs(config_dir, exist_ok=True)
+        
+        with open(os.path.join(config_dir, "webhooks.json"), "w") as f:
+            json.dump(self.recent_webhooks, f)
+            
+    def load_saved_webhooks(self):
+        """Carrega webhooks salvos do arquivo de configuração"""
+        config_file = os.path.join(os.path.expanduser("~"), ".veexwebhook", "webhooks.json")
+        
+        if os.path.exists(config_file):
+            try:
+                with open(config_file, "r") as f:
+                    self.recent_webhooks = json.load(f)
+            except Exception:
+                self.recent_webhooks = []
+
+    def show_saved_webhooks(self):
+        """Mostra uma janela com webhooks salvos"""
+        if not self.recent_webhooks:
+            messagebox.showinfo("Webhooks Salvos", "Nenhum webhook salvo")
+            return
+            
+        popup = tk.Toplevel(self.root)
+        popup.title("Webhooks Salvos")
+        popup.geometry("400x300")
+        popup.transient(self.root)
+        popup.grab_set()
+        
+        # Lista de webhooks
+        frame = ttk.Frame(popup, padding=10)
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(frame, text="Selecione um webhook:").pack(anchor=tk.W, pady=(0, 10))
+        
+        listbox = tk.Listbox(frame, bg="#40444B", fg="white", font=("Segoe UI", 10))
+        listbox.pack(fill=tk.BOTH, expand=True)
+        
+        for name, _ in self.recent_webhooks:
+            listbox.insert(tk.END, name)
+        
+        btn_frame = ttk.Frame(frame)
+        btn_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        def load_selected():
+            selected = listbox.curselection()
+            if selected:
+                index = selected[0]
+                _, url = self.recent_webhooks[index]
+                self.url_entry.delete(0, tk.END)
+                self.url_entry.insert(0, url)
+                self.url_entry['foreground'] = self.url_entry.default_fg
+                popup.destroy()
+        
+        def delete_selected():
+            selected = listbox.curselection()
+            if selected:
+                index = selected[0]
+                del self.recent_webhooks[index]
+                self.save_webhooks_to_file()
+                listbox.delete(index)
+        
+        ttk.Button(btn_frame, text="Carregar", command=load_selected).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(btn_frame, text="Excluir", command=delete_selected).pack(side=tk.LEFT)
+        ttk.Button(btn_frame, text="Fechar", command=popup.destroy).pack(side=tk.RIGHT)
+
+        # Estilo da janela
+        style = ttk.Style(popup)
+        style.configure("TButton", padding=6, relief="flat",
+                        background="#7289DA", foreground="white",
+                        font=("Segoe UI", 10, "bold"))
+        style.map("TButton", background=[("active", "#677BC4")])
+
+        # Configurações da listbox
+        listbox.configure(borderwidth=0, highlightthickness=0)
+        popup.transient(self.root)
+        popup.grab_set()
+        self.root.wait_window(popup)

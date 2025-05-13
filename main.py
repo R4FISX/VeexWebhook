@@ -512,3 +512,22 @@ class DiscordWebhookApp:
         popup.transient(self.root)
         popup.grab_set()
         self.root.wait_window(popup)
+
+# Adicione isso ao final do arquivo:
+if __name__ == "__main__":
+    try:
+        import tkinter.simpledialog  # Necessário para o method askstring
+        root = tk.Tk()
+        app = DiscordWebhookApp(root)
+        root.mainloop()
+    except Exception as e:
+        import traceback
+        print(f"Erro ao iniciar a aplicação: {e}")
+        traceback.print_exc()
+        # Mostrar uma mensagem de erro se a interface não iniciar
+        try:
+            messagebox.showerror("Erro de Inicialização", f"Erro ao iniciar: {e}")
+        except:
+            pass
+        # Manter o console aberto se estiver executando como .py
+        input("Pressione Enter para fechar...")

@@ -512,23 +512,63 @@ class DiscordWebhookApp:
                 del self.recent_webhooks[index]
                 self.save_webhooks_to_file()
                 listbox.delete(index)
-        
-        ttk.Button(btn_frame, text="Carregar", command=load_selected).pack(side=tk.LEFT, padx=(0, 5))
-        ttk.Button(btn_frame, text="Excluir", command=delete_selected).pack(side=tk.LEFT)
-        ttk.Button(btn_frame, text="Fechar", command=popup.destroy).pack(side=tk.RIGHT)
 
-        # Estilo da janela
-        style = ttk.Style(popup)
-        style.configure("TButton", padding=6, relief="flat",
-                        background="#7289DA", foreground="white",
-                        font=("Segoe UI", 10, "bold"))
-        style.map("TButton", background=[("active", "#677BC4")])
+        def edit_selected():
+            selected = listbox.curselection()
+            if not selected:
+                messagebox.showinfo("Editar Webhook", "Selecione um webhook para editar.")
+                return
+            index = selected[0]
+            old_name, old_url = self.recent_webhooks[index]
 
-        # Configurações da listbox
-        listbox.configure(borderwidth=0, highlightthickness=0)
-        popup.transient(self.root)
-        popup.grab_set()
-        self.root.wait_window(popup)
+            edit_win = tk.Toplevel(popup)
+            edit_win.title("Editar Webhook")
+            edit_win.geometry("350x150")
+            edit_win.transient(popup)
+            edit_win.grab_set()
+
+            ttk.Label(edit_win, text="Nome:").pack(anchor=tk.W, padx=10, pady=(10, 0))
+            name_entry = ttk.Entry(edit_win)
+            name_entry.pack(fill=tk.X, padx=10)
+            name_entry.insert(0, old_name)
+
+            ttk.Label(edit_win, text="URL:").pack(anchor=tk.W, padx=10, pady=(10, 0))
+            url_entry = ttk.Entry(edit_win)
+            url_entry.pack(fill=tk.X, padx=10)
+            url_entry.insert(0, old_url)
+
+            def save_edit():
+                new_name = name_entry.get().strip()
+                new_url = url_entry.get().strip()
+                if not new_name or not new_url:
+                    messagebox.showerror("Erro", "Nome e URL não podem ser vazios.")
+                    return
+                self.recent_webhooks[index] = (new_name, new_url)
+                self.save_webhooks_to_file()
+                listbox.delete(index)
+                listbox.insert(index, new_name)
+                edit_win.destroy()
+
+            ttk.Button(edit_win, text="Salvar", command=save_edit).pack(pady=10)
+            ttk.Button(edit_win, text="Cancelar", command=edit_win.destroy).pack()
+
+    ttk.Button(btn_frame, text="Carregar", command=load_selected).pack(side=tk.LEFT, padx=(0, 5))
+    ttk.Button(btn_frame, text="Editar", command=edit_selected).pack(side=tk.LEFT, padx=(0, 5))
+    ttk.Button(btn_frame, text="Excluir", command=delete_selected).pack(side=tk.LEFT)
+    ttk.Button(btn_frame, text="Fechar", command=popup.destroy).pack(side=tk.RIGHT)
+
+    # Estilo da janela
+    style = ttk.Style(popup)
+    style.configure("TButton", padding=6, relief="flat",
+                    background="#7289DA", foreground="white",
+                    font=("Segoe UI", 10, "bold"))
+    style.map("TButton", background=[("active", "#677BC4")])
+
+    # Configurações da listbox
+    listbox.configure(borderwidth=0, highlightthickness=0)
+    popup.transient(self.root)
+    popup.grab_set()
+    self.root.wait_window(popup)
 
 # Adicione isso ao final do arquivo:
 if __name__ == "__main__":

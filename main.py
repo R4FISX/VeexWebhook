@@ -71,34 +71,33 @@ class DiscordWebhookApp:
         self.root.bind('<Control-s>', lambda e: self.save_current_webhook())
 
     def setup_styles(self):
-        # Configure ttk styles for a more modern look
         self.style = ttk.Style()
-        self.style.theme_use('default')
-        
-        # Configure colors similar to Discord's theme
-        self.style.configure('TFrame', background='#2C2F33')
-        self.style.configure('TNotebook', background='#2C2F33', tabmargins=[2, 5, 2, 0])
-        self.style.configure('TNotebook.Tab', background='#23272A', foreground='white', 
-                             padding=[10, 5], font=('Segoe UI', 9))
-        self.style.map('TNotebook.Tab', background=[('selected', '#7289DA')], 
-                        foreground=[('selected', 'white')])
-        
-        self.style.configure('TLabel', background='#2C2F33', foreground='white', font=('Segoe UI', 10))
-        self.style.configure('TButton', background='#7289DA', foreground='white', font=('Segoe UI', 10, 'bold'))
-        self.style.map('TButton', background=[('active', '#677BC4')])
-        self.style.configure('TCheckbutton', background='#2C2F33', foreground='white', font=('Segoe UI', 10))
-        self.style.map('TCheckbutton', background=[('active', '#2C2F33')])
-        self.style.configure('TEntry', font=('Segoe UI', 10))
-        
-        # Special button styles
-        self.style.configure('Send.TButton', 
-                             background='#43B581', 
-                             foreground='white',
-                             font=('Segoe UI', 11, 'bold'))
-        self.style.map('Send.TButton', 
-                       background=[('active', '#3CA374'), ('pressed', '#2D7A59')],
-                       relief=[('pressed', 'sunken')])
-        
+        self.style.theme_use('clam')  # Moderno e clean
+
+        # Cores base
+        bg = '#23272A'
+        fg = '#FFFFFF'
+        accent = '#7289DA'
+        button_bg = '#5865F2'
+        button_fg = '#FFFFFF'
+        entry_bg = '#2C2F33'
+
+        self.root.configure(bg=bg)
+        self.style.configure('TFrame', background=bg)
+        self.style.configure('TNotebook', background=bg, tabmargins=[2, 5, 2, 0])
+        self.style.configure('TNotebook.Tab', background=bg, foreground=fg, padding=[12, 8], font=('Segoe UI', 10, 'bold'))
+        self.style.map('TNotebook.Tab', background=[('selected', accent)], foreground=[('selected', fg)])
+
+        self.style.configure('TLabel', background=bg, foreground=fg, font=('Segoe UI', 11))
+        self.style.configure('TButton', background=button_bg, foreground=button_fg, font=('Segoe UI', 11, 'bold'), padding=8)
+        self.style.map('TButton', background=[('active', accent)])
+        self.style.configure('TEntry', fieldbackground=entry_bg, foreground=fg, font=('Segoe UI', 10), padding=6)
+        self.style.configure('TCheckbutton', background=bg, foreground=fg, font=('Segoe UI', 10))
+
+        # Botão de envio destacado
+        self.style.configure('Send.TButton', background='#43B581', foreground='white', font=('Segoe UI', 12, 'bold'), padding=10)
+        self.style.map('Send.TButton', background=[('active', '#3CA374'), ('pressed', '#2D7A59')])
+
         self.style.configure('ColorPicker.TButton', background='#FF0000')
         
     def create_ui(self):
@@ -162,9 +161,9 @@ class DiscordWebhookApp:
         
         # Description
         ttk.Label(settings_frame, text="Descrição:").pack(anchor=tk.W, pady=(0, 5))
-        self.descricao_text = tk.Text(settings_frame, height=6, width=50, 
-                                      font=("Segoe UI", 10), bg="#40444B", fg="white")
-        self.descricao_text.pack(fill=tk.X, pady=(0, 10))
+        self.descricao_text = tk.Text(settings_frame, height=12, width=50, 
+                                      font=("Segoe UI", 10), bg="#40444B", fg="white", wrap=tk.WORD)
+        self.descricao_text.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
         # Color picker
         color_frame = ttk.Frame(settings_frame)
@@ -492,6 +491,7 @@ class DiscordWebhookApp:
         for name, _ in self.recent_webhooks:
             listbox.insert(tk.END, name)
         
+        # CRIE O btn_frame ANTES DE USAR OS BOTÕES!
         btn_frame = ttk.Frame(frame)
         btn_frame.pack(fill=tk.X, pady=(10, 0))
         
@@ -552,23 +552,24 @@ class DiscordWebhookApp:
             ttk.Button(edit_win, text="Salvar", command=save_edit).pack(pady=10)
             ttk.Button(edit_win, text="Cancelar", command=edit_win.destroy).pack()
 
-    ttk.Button(btn_frame, text="Carregar", command=load_selected).pack(side=tk.LEFT, padx=(0, 5))
-    ttk.Button(btn_frame, text="Editar", command=edit_selected).pack(side=tk.LEFT, padx=(0, 5))
-    ttk.Button(btn_frame, text="Excluir", command=delete_selected).pack(side=tk.LEFT)
-    ttk.Button(btn_frame, text="Fechar", command=popup.destroy).pack(side=tk.RIGHT)
+        # Agora sim, adicione os botões:
+        ttk.Button(btn_frame, text="Carregar", command=load_selected).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(btn_frame, text="Editar", command=edit_selected).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(btn_frame, text="Excluir", command=delete_selected).pack(side=tk.LEFT)
+        ttk.Button(btn_frame, text="Fechar", command=popup.destroy).pack(side=tk.RIGHT)
 
-    # Estilo da janela
-    style = ttk.Style(popup)
-    style.configure("TButton", padding=6, relief="flat",
-                    background="#7289DA", foreground="white",
-                    font=("Segoe UI", 10, "bold"))
-    style.map("TButton", background=[("active", "#677BC4")])
+        # Estilo da janela
+        style = ttk.Style(popup)
+        style.configure("TButton", padding=6, relief="flat",
+                        background="#7289DA", foreground="white",
+                        font=("Segoe UI", 10, "bold"))
+        style.map("TButton", background=[("active", "#677BC4")])
 
-    # Configurações da listbox
-    listbox.configure(borderwidth=0, highlightthickness=0)
-    popup.transient(self.root)
-    popup.grab_set()
-    self.root.wait_window(popup)
+        # Configurações da listbox
+        listbox.configure(borderwidth=0, highlightthickness=0)
+        popup.transient(self.root)
+        popup.grab_set()
+        self.root.wait_window(popup)
 
 # Adicione isso ao final do arquivo:
 if __name__ == "__main__":

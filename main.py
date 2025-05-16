@@ -101,9 +101,32 @@ class DiscordWebhookApp:
         self.style.configure('ColorPicker.TButton', background='#FF0000')
         
     def create_ui(self):
-        # Main container
-        main_frame = ttk.Frame(self.root, padding="10 10 10 10")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # Main container with scrollbar
+        main_canvas = tk.Canvas(self.root, bg="#2C2F33", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=main_canvas.yview)
+        main_frame = ttk.Frame(main_canvas, padding="10 10 10 10")
+        
+        # Configure canvas
+        main_canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Pack scrollbar and canvas
+        scrollbar.pack(side="right", fill="y")
+        main_canvas.pack(side="left", fill="both", expand=True)
+        
+        # Create window in canvas
+        canvas_frame = main_canvas.create_window((0, 0), window=main_frame, anchor="nw")
+        
+        # Configure canvas scrolling
+        def configure_scroll(event):
+            main_canvas.configure(scrollregion=main_canvas.bbox("all"))
+        
+        main_frame.bind("<Configure>", configure_scroll)
+        
+        # Bind mousewheel to scroll
+        def _on_mousewheel(event):
+            main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        main_canvas.bind_all("<MouseWheel>", _on_mousewheel)
         
         # Webhook URL section
         url_frame = ttk.Frame(main_frame)

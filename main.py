@@ -101,180 +101,151 @@ class DiscordWebhookApp:
         self.style.configure('ColorPicker.TButton', background='#FF0000')
         
     def create_ui(self):
-        # Main container with scrollbar
+        # Main container com scrollbar, ocupando toda a janela
         main_canvas = tk.Canvas(self.root, bg="#2C2F33", highlightthickness=0)
         scrollbar = ttk.Scrollbar(self.root, orient="vertical", command=main_canvas.yview)
-        main_frame = ttk.Frame(main_canvas, padding="10 10 10 10")
-        
-        # Configure canvas
+        main_frame = ttk.Frame(main_canvas)
+
         main_canvas.configure(yscrollcommand=scrollbar.set)
-        
-        # Pack scrollbar and canvas
         scrollbar.pack(side="right", fill="y")
         main_canvas.pack(side="left", fill="both", expand=True)
-        
-        # Create window in canvas
         canvas_frame = main_canvas.create_window((0, 0), window=main_frame, anchor="nw")
-        
-        # Configure canvas scrolling
+
         def configure_scroll(event):
             main_canvas.configure(scrollregion=main_canvas.bbox("all"))
-        
+            # Ajusta largura do main_frame para sempre ocupar toda a largura do canvas
+            main_canvas.itemconfig(canvas_frame, width=main_canvas.winfo_width())
         main_frame.bind("<Configure>", configure_scroll)
-        
-        # Bind mousewheel to scroll
+        main_canvas.bind("<Configure>", configure_scroll)
         def _on_mousewheel(event):
             main_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        
         main_canvas.bind_all("<MouseWheel>", _on_mousewheel)
-        
+
+        # Função para forçar fundo escuro nos LabelFrames
+        def set_dark_labelframe(widget):
+            try:
+                widget.configure(style="Dark.TLabelframe")
+            except:
+                pass
+
+        # Estilo escuro para LabelFrame
+        self.style.configure("Dark.TLabelframe", background="#23272A", foreground="#FFFFFF", borderwidth=1)
+        self.style.configure("Dark.TLabelframe.Label", background="#23272A", foreground="#FFFFFF", font=("Segoe UI", 10, "bold"))
+
         # Webhook URL section
-        url_frame = ttk.Frame(main_frame)
-        url_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        ttk.Label(url_frame, text="Discord Webhook URL:").pack(anchor=tk.W, pady=(0, 5))
-        
-        url_input_frame = ttk.Frame(url_frame)
-        url_input_frame.pack(fill=tk.X)
-        
-        self.url_entry = PlaceholderEntry(
-            url_input_frame,
-            "https://discord.com/api/webhooks/ID/TOKEN",
-            width=80
-        )
+        url_frame = ttk.LabelFrame(main_frame, text="Webhook do Discord", padding="15 10 15 10", style="Dark.TLabelframe")
+        url_frame.pack(fill=tk.X, pady=(0, 15), expand=True)
+        set_dark_labelframe(url_frame)
+        ttk.Label(url_frame, text="URL:", font=("Segoe UI", 10, "bold"), background="#23272A").pack(anchor=tk.W, pady=(0, 5))
+        url_input_frame = ttk.Frame(url_frame, style="TFrame")
+        url_input_frame.pack(fill=tk.X, expand=True)
+        self.url_entry = PlaceholderEntry(url_input_frame, "https://discord.com/api/webhooks/ID/TOKEN", width=80)
         self.url_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=3)
         ToolTip(self.url_entry, "Cole aqui sua URL de webhook do Discord")
 
-        # Após a seção URL e antes do notebook
-        mention_frame = ttk.Frame(main_frame)
-        mention_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        ttk.Label(mention_frame, text="Mencionar Cargos (IDs separados por vírgula):").pack(anchor=tk.W, pady=(0, 5))
-        
+        # Menções
+        mention_frame = ttk.LabelFrame(main_frame, text="Menção de Cargos", padding="15 10 15 10", style="Dark.TLabelframe")
+        mention_frame.pack(fill=tk.X, pady=(0, 15), expand=True)
+        set_dark_labelframe(mention_frame)
+        ttk.Label(mention_frame, text="IDs separados por vírgula:", background="#23272A").pack(anchor=tk.W, pady=(0, 5))
         self.mention_entry = ttk.Entry(mention_frame, width=50)
-        self.mention_entry.pack(fill=tk.X, ipady=3)
+        self.mention_entry.pack(fill=tk.X, ipady=3, expand=True)
         ToolTip(self.mention_entry, "Insira IDs de cargos para mencioná-los (ex: 123456789,987654321)")
-    
-        # Create notebook (tabs)
+
+        # Notebook (tabs)
         self.notebook = ttk.Notebook(main_frame)
         self.notebook.pack(fill=tk.BOTH, expand=True, pady=10)
-        
-        # Simple message tab
-        self.simple_frame = ttk.Frame(self.notebook, padding=10)
+
+        # Aba Mensagem Simples
+        self.simple_frame = ttk.Frame(self.notebook, padding=15, style="TFrame")
         self.notebook.add(self.simple_frame, text="Mensagem Simples")
-        
-        ttk.Label(self.simple_frame, text="Conteúdo da Mensagem:").pack(anchor=tk.W, pady=(0, 5))
-        
-        self.simple_message = tk.Text(self.simple_frame, height=10, width=70, 
-                                      font=("Segoe UI", 10), bg="#40444B", fg="white")
+        ttk.Label(self.simple_frame, text="Conteúdo da Mensagem:", font=("Segoe UI", 10, "bold"), background="#23272A").pack(anchor=tk.W, pady=(0, 5))
+        self.simple_message = tk.Text(self.simple_frame, height=10, width=70, font=("Segoe UI", 10), bg="#40444B", fg="white")
         self.simple_message.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
-        
-        # Embed tab - divida em duas partes
-        self.embed_frame = ttk.Frame(self.notebook, padding=10)
+
+        # Aba Embed
+        self.embed_frame = ttk.Frame(self.notebook, padding=15, style="TFrame")
         self.notebook.add(self.embed_frame, text="Mensagem Embed")
-        
-        # Left side - embed settings
-        settings_frame = ttk.Frame(self.embed_frame)
-        settings_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
-        
-        # Title
-        ttk.Label(settings_frame, text="Título:").pack(anchor=tk.W, pady=(0, 5))
+        embed_content = ttk.Frame(self.embed_frame, style="TFrame")
+        embed_content.pack(fill=tk.BOTH, expand=True)
+        # Esquerda: configurações do embed
+        settings_frame = ttk.LabelFrame(embed_content, text="Configurações do Embed", padding="15 10 15 10", style="Dark.TLabelframe")
+        settings_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 20), pady=5)
+        set_dark_labelframe(settings_frame)
+        ttk.Label(settings_frame, text="Título:", background="#23272A").pack(anchor=tk.W, pady=(0, 5))
         self.titulo_entry = ttk.Entry(settings_frame, width=50)
         self.titulo_entry.pack(fill=tk.X, pady=(0, 10), ipady=3)
-        
-        # Description
-        ttk.Label(settings_frame, text="Descrição:").pack(anchor=tk.W, pady=(0, 5))
-        self.descricao_text = tk.Text(settings_frame, height=12, width=50, 
-                                      font=("Segoe UI", 10), bg="#40444B", fg="white", wrap=tk.WORD)
+        ttk.Label(settings_frame, text="Descrição:", background="#23272A").pack(anchor=tk.W, pady=(0, 5))
+        self.descricao_text = tk.Text(settings_frame, height=10, width=50, font=("Segoe UI", 10), bg="#40444B", fg="white", wrap=tk.WORD)
         self.descricao_text.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
-        
-        # Color picker
-        color_frame = ttk.Frame(settings_frame)
-        color_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        ttk.Label(color_frame, text="Cor:").pack(side=tk.LEFT, padx=(0, 5))
+        color_frame = ttk.Frame(settings_frame, style="TFrame")
+        color_frame.pack(fill=tk.X, pady=(0, 10), expand=True)
+        ttk.Label(color_frame, text="Cor:", background="#23272A").pack(side=tk.LEFT, padx=(0, 5))
         self.color_preview = tk.Canvas(color_frame, width=20, height=20, bg="#FF0000", highlightthickness=1)
         self.color_preview.pack(side=tk.LEFT, padx=(0, 5))
-        
         self.cor_entry = ttk.Entry(color_frame, width=10)
         self.cor_entry.insert(0, "FF0000")
         self.cor_entry.pack(side=tk.LEFT, padx=(0, 5))
         self.cor_entry.bind("<KeyRelease>", self.update_color_preview)
-        
         color_btn = ttk.Button(color_frame, text="Escolher Cor", command=self.choose_color)
         color_btn.pack(side=tk.LEFT, padx=5)
-        
-        # Image URL
-        ttk.Label(settings_frame, text="Image URL:").pack(anchor=tk.W, pady=(0, 5))
+        ttk.Label(settings_frame, text="Image URL:", background="#23272A").pack(anchor=tk.W, pady=(0, 5))
         self.imagem_entry = ttk.Entry(settings_frame, width=50)
         self.imagem_entry.pack(fill=tk.X, pady=(0, 10), ipady=3)
-        
-        # Footer
-        ttk.Label(settings_frame, text="Footer Text:").pack(anchor=tk.W, pady=(0, 5))
+        ttk.Label(settings_frame, text="Footer Text:", background="#23272A").pack(anchor=tk.W, pady=(0, 5))
         self.footer_entry = ttk.Entry(settings_frame, width=50)
         self.footer_entry.insert(0, "Equipe de administração ReisPixelmon")
         self.footer_entry.pack(fill=tk.X, pady=(0, 10), ipady=3)
-        
-        # Right side - embed preview
-        preview_frame = ttk.Frame(self.embed_frame)
-        preview_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
-        
-        ttk.Label(preview_frame, text="Preview do Embed:").pack(anchor=tk.W, pady=(0, 5))
-        
-        self.preview_frame = ttk.Frame(preview_frame, padding=10, relief="solid", borderwidth=1)
+
+        # Direita: preview do embed
+        preview_frame = ttk.LabelFrame(embed_content, text="Preview do Embed", padding="15 10 15 10", style="Dark.TLabelframe")
+        preview_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, pady=5)
+        set_dark_labelframe(preview_frame)
+        self.preview_frame = ttk.Frame(preview_frame, padding=20, relief="solid", borderwidth=3, style="Preview.TFrame")
         self.preview_frame.pack(fill=tk.BOTH, expand=True)
-        self.preview_frame.configure(style="Preview.TFrame")
-        
-        self.preview_title = ttk.Label(self.preview_frame, text="", font=("Segoe UI", 12, "bold"))
-        self.preview_title.pack(anchor=tk.W, pady=(0, 5))
-        
-        self.preview_desc = ttk.Label(self.preview_frame, text="", wraplength=250)
-        self.preview_desc.pack(anchor=tk.W, fill=tk.X)
-        
-        self.preview_img = ttk.Label(self.preview_frame)
-        self.preview_img.pack(anchor=tk.W, pady=(5, 0))
-        
-        self.preview_footer = ttk.Label(self.preview_frame, text="", font=("Segoe UI", 8))
+        self.preview_title = ttk.Label(self.preview_frame, text="", font=("Segoe UI", 13, "bold"), background="#36393F")
+        self.preview_title.pack(anchor=tk.W, pady=(0, 8))
+        self.preview_desc = ttk.Label(self.preview_frame, text="", wraplength=300, font=("Segoe UI", 10), background="#36393F")
+        self.preview_desc.pack(anchor=tk.W, fill=tk.X, pady=(0, 8))
+        self.preview_img = ttk.Label(self.preview_frame, background="#36393F")
+        self.preview_img.pack(anchor=tk.W, pady=(5, 8))
+        self.preview_footer = ttk.Label(self.preview_frame, text="", font=("Segoe UI", 8), background="#36393F")
         self.preview_footer.pack(anchor=tk.W, side=tk.BOTTOM)
-        
+
         # Vincular eventos para atualização em tempo real
         self.titulo_entry.bind("<KeyRelease>", self.update_preview)
         self.descricao_text.bind("<KeyRelease>", self.update_preview)
         self.cor_entry.bind("<KeyRelease>", self.update_preview)
         self.imagem_entry.bind("<KeyRelease>", self.update_preview)
         self.footer_entry.bind("<KeyRelease>", self.update_preview)
-        
-        # Send button com ícone e efeito de clique
-        send_button_frame = ttk.Frame(main_frame)
-        send_button_frame.pack(pady=15)
 
+        # Botão de envio centralizado
+        send_button_frame = ttk.Frame(main_frame, style="TFrame")
+        send_button_frame.pack(pady=25, fill=tk.X, expand=True)
         send_button = ttk.Button(
             send_button_frame,
             text="Enviar Webhook",
             command=self.enviar_webhook,
             style="Send.TButton",
-            width=20
+            width=22
         )
-        send_button.pack(ipadx=10, ipady=8)
+        send_button.pack(ipadx=12, ipady=10)
         ToolTip(send_button, "Clique para enviar sua mensagem (Ctrl+Enter)")
-
-        # Adicione um efeito visual quando o botão for clicado
         def button_click_effect(event):
             send_button.state(['pressed'])
             self.root.after(100, lambda: send_button.state(['!pressed']))
             self.enviar_webhook()
-
         send_button.bind('<Button-1>', button_click_effect)
 
-        # +++ Nova barra de progresso +++
+        # Barra de progresso
         self.progress = ttk.Progressbar(main_frame, mode='indeterminate')
         self.progress.pack(fill=tk.X, pady=(5,0))
         self.progress.pack_forget()
 
-        # Status bar
+        # Status bar discreto
         self.status_var = tk.StringVar()
         self.status_var.set("Pronto para enviar")
-        status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W)
+        status_bar = ttk.Label(main_frame, textvariable=self.status_var, relief=tk.SUNKEN, anchor=tk.W, font=("Segoe UI", 9), background="#23272A", foreground="#AAAAAA")
         status_bar.pack(fill=tk.X, side=tk.BOTTOM, pady=(5, 0))
         
     def update_color_preview(self, event=None):
